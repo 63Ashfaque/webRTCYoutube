@@ -1,116 +1,62 @@
-<!-- index.html using PeerJS -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube Music + PeerJS Audio Call</title>
+  <title>YouTube Sync + PeerJS Call</title>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
-  <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; }
-    input, button { margin: 5px; padding: 8px; font-size: 16px; }
-    video { display: block; margin: 20px auto; }
-    iframe { margin-top: 20px; }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h2>YouTube Sync + Audio Call (PeerJS)</h2>
-
-  <div>
-    <label>Enter YouTube Video ID:</label>
-    <input type="text" id="videoId" placeholder="e.g., dQw4w9WgXcQ">
-    <button onclick="loadVideo()">Load Video</button>
+  <header>
+    <div class="container">
+      <h2>YouTube Music + Audio Call</h2>
+      <div class="subtitle">Watch videos together with friends while talking in real-time</div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="card" id="connection-card">
+      <div class="card-title">Connection Settings</div>
+      <div class="form-group">
+        <label for="myPeerId">Your Peer ID:</label>
+        <input type="text" id="myPeerId" readonly>
+        <div class="note">Share this ID with your friend to connect</div>
+      </div>
+      
+      <div class="form-group">
+        <label for="connectToId">Connect to Peer ID:</label>
+        <div class="input-group">
+          <input type="text" id="connectToId" placeholder="Enter your friend's ID">
+          <button class="btn" onclick="connectToPeer()">Connect</button>
+        </div>
+      </div>
+      <div id="connection-status" class="connection-status" style="display: none;">
+        <span class="status-indicator"></span>
+        <span>Connected successfully</span>
+      </div>
+    </div>
+    
+    <div class="card" id="youtube-card" style="display: none;">
+      <div class="card-title">YouTube Video</div>
+      <div class="form-group">
+        <label for="videoId">YouTube Video ID:</label>
+        <div class="input-group">
+          <input type="text" id="videoId" placeholder="e.g., dQw4w9WgXcQ">
+          <button class="btn btn-primary" onclick="loadVideo()">Load Video</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="player-container" id="player-container" style="display: none;">
+      <div id="player"></div>
+    </div>
+    
+    <video id="remoteAudio" autoplay></video>
   </div>
 
-  <div>
-    <label>Your Peer ID:</label>
-    <input type="text" id="myPeerId" readonly>
-    <br>
-    <label>Connect to Peer ID:</label>
-    <input type="text" id="connectToId">
-    <button onclick="connectCall()">Start Call</button>
-  </div>
-
-  <video id="remoteAudio" autoplay></video>
-  <div id="player"></div>
-
-  <script>
-    let player;
-    let peer = new Peer();
-    let conn;
-    let call;
-
-    peer.on('open', id => {
-      document.getElementById('myPeerId').value = id;
-    });
-
-    peer.on('call', incomingCall => {
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        incomingCall.answer(stream);
-        incomingCall.on('stream', remoteStream => {
-          document.getElementById('remoteAudio').srcObject = remoteStream;
-        });
-      });
-    });
-
-    function connectCall() {
-      const peerId = document.getElementById('connectToId').value;
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        call = peer.call(peerId, stream);
-        call.on('stream', remoteStream => {
-          document.getElementById('remoteAudio').srcObject = remoteStream;
-        });
-      });
-    }
-
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player('player', {
-        height: '360', width: '640', videoId: '',
-        events: {
-          onStateChange: onPlayerStateChange
-        }
-      });
-    }
-
-    function loadVideo() {
-      const videoId = document.getElementById('videoId').value;
-      player.loadVideoById(videoId);
-    }
-
-    function onPlayerStateChange(event) {
-      if (!conn) return;
-      if (event.data === YT.PlayerState.PLAYING) {
-        conn.send({ type: 'play', time: player.getCurrentTime() });
-      } else if (event.data === YT.PlayerState.PAUSED) {
-        conn.send({ type: 'pause', time: player.getCurrentTime() });
-      }
-    }
-
-    peer.on('connection', connection => {
-      conn = connection;
-      conn.on('data', handleVideoSync);
-    });
-
-    function handleVideoSync(data) {
-      if (!player) return;
-      if (data.type === 'play') {
-        player.seekTo(data.time, true);
-        player.playVideo();
-      } else if (data.type === 'pause') {
-        player.pauseVideo();
-        player.seekTo(data.time, true);
-      }
-    }
-
-    // Establish peer data connection for sync
-    document.getElementById('connectToId').addEventListener('change', () => {
-      const id = document.getElementById('connectToId').value;
-      conn = peer.connect(id);
-      conn.on('open', () => {
-        conn.on('data', handleVideoSync);
-      });
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
