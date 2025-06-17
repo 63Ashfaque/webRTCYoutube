@@ -262,7 +262,7 @@ input[readonly] {
   }
   
   .btn-primary:hover {
-    background-color: var(--primary-dark);
+    background-color: var(--s);
     box-shadow: 0 8px 20px rgba(255, 0, 0, 0.4);
   }
 
