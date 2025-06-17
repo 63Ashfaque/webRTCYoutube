@@ -1,0 +1,116 @@
+<!-- index.html using PeerJS -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Music + PeerJS Audio Call</title>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    input, button { margin: 5px; padding: 8px; font-size: 16px; }
+    video { display: block; margin: 20px auto; }
+    iframe { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>YouTube Sync + Audio Call (PeerJS)</h2>
+
+  <div>
+    <label>Enter YouTube Video ID:</label>
+    <input type="text" id="videoId" placeholder="e.g., dQw4w9WgXcQ">
+    <button onclick="loadVideo()">Load Video</button>
+  </div>
+
+  <div>
+    <label>Your Peer ID:</label>
+    <input type="text" id="myPeerId" readonly>
+    <br>
+    <label>Connect to Peer ID:</label>
+    <input type="text" id="connectToId">
+    <button onclick="connectCall()">Start Call</button>
+  </div>
+
+  <video id="remoteAudio" autoplay></video>
+  <div id="player"></div>
+
+  <script>
+    let player;
+    let peer = new Peer();
+    let conn;
+    let call;
+
+    peer.on('open', id => {
+      document.getElementById('myPeerId').value = id;
+    });
+
+    peer.on('call', incomingCall => {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        incomingCall.answer(stream);
+        incomingCall.on('stream', remoteStream => {
+          document.getElementById('remoteAudio').srcObject = remoteStream;
+        });
+      });
+    });
+
+    function connectCall() {
+      const peerId = document.getElementById('connectToId').value;
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        call = peer.call(peerId, stream);
+        call.on('stream', remoteStream => {
+          document.getElementById('remoteAudio').srcObject = remoteStream;
+        });
+      });
+    }
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        height: '360', width: '640', videoId: '',
+        events: {
+          onStateChange: onPlayerStateChange
+        }
+      });
+    }
+
+    function loadVideo() {
+      const videoId = document.getElementById('videoId').value;
+      player.loadVideoById(videoId);
+    }
+
+    function onPlayerStateChange(event) {
+      if (!conn) return;
+      if (event.data === YT.PlayerState.PLAYING) {
+        conn.send({ type: 'play', time: player.getCurrentTime() });
+      } else if (event.data === YT.PlayerState.PAUSED) {
+        conn.send({ type: 'pause', time: player.getCurrentTime() });
+      }
+    }
+
+    peer.on('connection', connection => {
+      conn = connection;
+      conn.on('data', handleVideoSync);
+    });
+
+    function handleVideoSync(data) {
+      if (!player) return;
+      if (data.type === 'play') {
+        player.seekTo(data.time, true);
+        player.playVideo();
+      } else if (data.type === 'pause') {
+        player.pauseVideo();
+        player.seekTo(data.time, true);
+      }
+    }
+
+    // Establish peer data connection for sync
+    document.getElementById('connectToId').addEventListener('change', () => {
+      const id = document.getElementById('connectToId').value;
+      conn = peer.connect(id);
+      conn.on('open', () => {
+        conn.on('data', handleVideoSync);
+      });
+    });
+  </script>
+</body>
+</html>
