@@ -3,7 +3,6 @@ function generateCustomPeerID(length = 4) {
   const capitals = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const numbers = "0123456789";
  
-
   const result = [];
 
   while (result.length < length) {
@@ -38,7 +37,7 @@ peer.on('open', id => {
 // 4. Handle incoming data connections
 peer.on('connection', incomingConn => {
   conn = incomingConn;
-  conn.on('data', handleVideoSync);
+  conn.on('data', handleDataFromPeer);
   showConnectionSuccess();
 });
 
@@ -62,7 +61,7 @@ function connectToPeer() {
   
   conn = peer.connect(remoteId);
   conn.on('open', () => {
-    conn.on('data', handleVideoSync);
+    conn.on('data', handleDataFromPeer);
     console.log('Data channel open');
     showConnectionSuccess();
   });
@@ -75,6 +74,28 @@ function connectToPeer() {
   });
 }
 
+// 7. Disconnect from peer
+function disconnectPeer() {
+  if (conn) {
+    conn.close();
+  }
+  if (call) {
+    call.close();
+  }
+  
+  // Reset UI
+  document.getElementById('connection-card').style.display = 'block';
+  document.getElementById('youtube-card').style.display = 'none';
+  document.getElementById('player-container').style.display = 'none';
+  document.getElementById('connection-status').style.display = 'none';
+  
+  // Reset state
+  isConnected = false;
+  
+  // Optional: reload the page for a fresh start
+  window.location.reload();
+}
+
 // Show connection success and reveal YouTube section
 function showConnectionSuccess() {
   if (isConnected) return; // Prevent multiple executions
@@ -85,13 +106,14 @@ function showConnectionSuccess() {
   const connectionStatus = document.getElementById('connection-status');
   connectionStatus.style.display = 'inline-flex';
   
-  // Show YouTube card after a short delay
+  // Hide connection card and show YouTube card after a short delay
   setTimeout(() => {
+    document.getElementById('connection-card').style.display = 'none';
     document.getElementById('youtube-card').style.display = 'block';
   }, 1000);
 }
 
-// 7. Load YouTube API player
+// 8. Load YouTube API player
 function onYouTubeIframeAPIReady() {
   player = new YT.Player('player', {
     height: '360',
@@ -104,7 +126,7 @@ function onYouTubeIframeAPIReady() {
   });
 }
 
-// 8. Load specific YouTube video
+// 9. Load specific YouTube video
 function loadVideo() {
   const videoId = document.getElementById('videoId').value;
   if (!playerReady) {
@@ -122,9 +144,14 @@ function loadVideo() {
   
   // Load the video
   player.loadVideoById(videoId);
+  
+  // Send video ID to peer
+  if (conn && isConnected) {
+    conn.send({ type: 'loadVideo', videoId: videoId });
+  }
 }
 
-// 9. Detect local play/pause and sync to peer
+// 10. Detect local play/pause and sync to peer
 function onPlayerStateChange(event) {
   if (!conn || !playerReady) return;
 
@@ -136,15 +163,26 @@ function onPlayerStateChange(event) {
   }
 }
 
-// 10. Handle sync data from peer
-function handleVideoSync(data) {
-  if (!player || !playerReady) return;
+// 11. Handle all data from peer
+function handleDataFromPeer(data) {
+  if (!playerReady) return;
 
-  if (data.type === 'play') {
-    player.seekTo(data.time, true);
-    player.playVideo();
-  } else if (data.type === 'pause') {
-    player.pauseVideo();
-    player.seekTo(data.time, true);
+  switch(data.type) {
+    case 'play':
+      player.seekTo(data.time, true);
+      player.playVideo();
+      break;
+      
+    case 'pause':
+      player.pauseVideo();
+      player.seekTo(data.time, true);
+      break;
+      
+    case 'loadVideo':
+      // Load the same video on this side
+      document.getElementById('videoId').value = data.videoId;
+      document.getElementById('player-container').style.display = 'block';
+      player.loadVideoById(data.videoId);
+      break;
   }
 }

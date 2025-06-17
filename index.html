@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -18,6 +19,7 @@
   </header>
   
   <div class="container">
+    <!-- Connection Card -->
     <div class="card" id="connection-card">
       <div class="card-title">Connection Settings</div>
       <div class="form-group">
@@ -33,12 +35,10 @@
           <button class="btn" onclick="connectToPeer()">Connect</button>
         </div>
       </div>
-      <div id="connection-status" class="connection-status" style="display: none;">
-        <span class="status-indicator"></span>
-        <span>Connected successfully</span>
-      </div>
+     
     </div>
     
+    <!-- YouTube Card -->
     <div class="card" id="youtube-card" style="display: none;">
       <div class="card-title">YouTube Video</div>
       <div class="form-group">
@@ -48,8 +48,16 @@
           <button class="btn btn-primary" onclick="loadVideo()">Load Video</button>
         </div>
       </div>
+      <div id="connection-status" class="connection-status" style="display: none;">
+        <span class="status-indicator"></span>
+        <span>Connected successfully</span>
+      </div>
+      <div class="disconnect-container">
+        <button class="btn btn-danger" onclick="disconnectPeer()"><i class="fas fa-times-circle"></i> Disconnect</button>
+      </div>
     </div>
     
+    <!-- Player Container -->
     <div class="player-container" id="player-container" style="display: none;">
       <div id="player"></div>
     </div>
