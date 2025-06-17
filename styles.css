@@ -257,13 +257,11 @@ input[readonly] {
   }
   
   .btn-primary {
-    background-color: var(--primary);
-    box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+   
   }
   
   .btn-primary:hover {
-    background-color: var(--s);
-    box-shadow: 0 8px 20px rgba(255, 0, 0, 0.4);
+    
   }
 
 .btn-danger:hover {
